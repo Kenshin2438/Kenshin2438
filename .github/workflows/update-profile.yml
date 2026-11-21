@@ -1,0 +1,46 @@
+name: Update Profile
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * 1"
+  push:
+    branches: [main]
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Generate GitHub stats
+        uses: stats-organization/github-readme-stats-action@2c498845f71017821efaad14293ebc736156ef21 # v2.1.0
+        with:
+          card: stats
+          options: username=${{ github.repository_owner }}&show_icons=true
+          path: dist/stats.svg
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate top languages
+        uses: stats-organization/github-readme-stats-action@2c498845f71017821efaad14293ebc736156ef21 # v2.1.0
+        with:
+          card: top-langs
+          options: username=${{ github.repository_owner }}&layout=compact&langs_count=20
+          path: dist/top-langs.svg
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit updated images
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add dist/stats.svg dist/top-langs.svg
+          if git diff --cached --quiet; then
+            echo 'Profile stats are already up to date.'
+            exit 0
+          fi
+          git commit -m 'chore: update profile stats'
+          git push
